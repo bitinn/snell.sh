@@ -327,7 +327,7 @@ get_latest_github_version() {
         exit 1
     fi
 
-    GITHUB_VERSION=$(echo "$GITHUB_VERSION_INFO" | jq -r '.name' | awk '{print $NF}')
+    GITHUB_VERSION=$(echo "$GITHUB_VERSION_INFO" | jq -r '.tag_name' | awk '{print $NF}')
     if [ -z "$GITHUB_VERSION" ]; then
         echo -e "${RED}Unable to extract latest script from GitHub response${RESET}"
         exit 1
