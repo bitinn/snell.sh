@@ -14,7 +14,7 @@ CYAN='\033[0;36m'
 RESET='\033[0m'
 
 #当前版本号
-current_version="1.3"
+CURRENT_SNELL_SCRIPT_VERSION="1.3.3"
 
 SNELL_CONF_DIR="/etc/snell"
 SNELL_CONF_FILE="${SNELL_CONF_DIR}/snell-server.conf"
@@ -304,7 +304,7 @@ check_snell_update() {
     get_current_snell_version
 
     if ! version_greater_equal "$CURRENT_VERSION" "$SNELL_VERSION"; then
-        echo -e "${YELLOW}Current Snell version: ${CURRENT_VERSION}，Latest Snell release: ${SNELL_VERSION}${RESET}"
+        echo -e "${YELLOW}Current Snell version: ${CURRENT_VERSION}, Latest Snell release: ${SNELL_VERSION}${RESET}"
         echo -e "${CYAN}Upgrade Snell? [y/N]${RESET}"
         read -r choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
@@ -336,8 +336,8 @@ get_latest_github_version() {
 update_script() {
     get_latest_github_version
 
-    if version_greater_equal "$CURRENT_VERSION" "$GITHUB_VERSION"; then
-        echo -e "${GREEN}Already using latest install script (${CURRENT_VERSION})${RESET}"
+    if version_greater_equal "$CURRENT_SNELL_SCRIPT_VERSION" "$GITHUB_VERSION"; then
+        echo -e "${GREEN}Already using latest install script (${CURRENT_SNELL_SCRIPT_VERSION})${RESET}"
     else
         # 使用 curl 下载脚本并覆盖当前脚本
         curl -s -o "$0" "https://raw.githubusercontent.com/bitinn/snell.sh/main/snell.sh"
