@@ -321,7 +321,7 @@ check_snell_update() {
 
 # 获取最新 GitHub 版本
 get_latest_github_version() {
-    GITHUB_VERSION_INFO=$(curl -s https://api.github.com/repos/jinqians/snell.sh/releases/latest)
+    GITHUB_VERSION_INFO=$(curl -s https://api.github.com/repos/bitinn/snell.sh/releases/latest)
     if [ $? -ne 0 ]; then
         echo -e "${RED}无法获取 GitHub 上的最新版本信息。${RESET}"
         exit 1
@@ -342,7 +342,7 @@ update_script() {
         echo -e "${GREEN}当前版本 (${CURRENT_VERSION}) 已是最新，无需更新。${RESET}"
     else
         # 使用 curl 下载脚本并覆盖当前脚本
-        curl -s -o "$0" "https://raw.githubusercontent.com/jinqians/snell.sh/main/snell.sh"
+        curl -s -o "$0" "https://raw.githubusercontent.com/bitinn/snell.sh/main/snell.sh"
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}脚本更新成功！已更新至 GitHub 上的版本: ${GITHUB_VERSION}${RESET}"
             echo -e "${YELLOW}请重新执行脚本以应用更新。${RESET}"
