@@ -18,8 +18,10 @@ This Snell management script provides an efficient and automated solution for ma
 ## Installation
 1. Download and Run the script:
 ```shell
-wget https://raw.githubusercontent.com/jinqians/snell.sh/main/snell.sh -O snell.sh && chmod +x snell.sh && ./snell.sh
+wget https://raw.githubusercontent.com/bitinn/snell.sh/main/snell.sh -O snell.sh && chmod +x snell.sh && ./snell.sh
 ```
+
+(NOTE: this version was forked for personal usage)
 
 
 ## Usage
