@@ -20,12 +20,12 @@ SNELL_CONF_DIR="/etc/snell"
 SNELL_CONF_FILE="${SNELL_CONF_DIR}/snell-server.conf"
 INSTALL_DIR="/usr/local/bin"
 SYSTEMD_SERVICE_FILE="/lib/systemd/system/snell.service"
-SNELL_VERSION="v4.0.1"  # 初始默认版本
+SNELL_VERSION="v4.1.1"  # 初始默认版本
 
 # 等待其他 apt 进程完成
 wait_for_apt() {
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-        echo -e "${YELLOW}等待其他 apt 进程完成...${RESET}"
+        echo -e "${YELLOW}Waiting for apt progress...${RESET}"
         sleep 1
     done
 }
@@ -33,7 +33,7 @@ wait_for_apt() {
 # 检查是否以 root 权限运行
 check_root() {
     if [ "$(id -u)" != "0" ]; then
-        echo -e "${RED}请以 root 权限运行此脚本.${RESET}"
+        echo -e "${RED}Please run script with root user.${RESET}"
         exit 1
     fi
 }
@@ -42,7 +42,7 @@ check_root
 # 检查 jq 是否安装
 check_jq() {
     if ! command -v jq &> /dev/null; then
-        echo -e "${YELLOW}未检测到 jq，正在安装...${RESET}"
+        echo -e "${YELLOW}Package jq not yet installed, installing...${RESET}"
         # 根据系统类型安装 jq
         if [ -x "$(command -v apt)" ]; then
             wait_for_apt
@@ -50,7 +50,7 @@ check_jq() {
         elif [ -x "$(command -v yum)" ]; then
             yum install -y jq
         else
-            echo -e "${RED}未支持的包管理器，无法安装 jq。请手动安装 jq。${RESET}"
+            echo -e "${RED}Unsupported package manager, please install jq manually${RESET}"
             exit 1
         fi
     fi
@@ -72,7 +72,7 @@ get_latest_snell_version() {
     if [ -n "$latest_version" ]; then
         SNELL_VERSION="v${latest_version}"
     else
-        echo -e "${RED}获取 Snell 最新版本失败，使用默认版本 ${SNELL_VERSION}${RESET}"
+        echo -e "${RED}Unable to obtain latest Snell server, using latest version instead: ${SNELL_VERSION}${RESET}"
     fi
 }
 
@@ -104,12 +104,12 @@ version_greater_equal() {
 # 用户输入端口号，范围 1-65535
 get_user_port() {
     while true; do
-        read -rp "请输入要使用的端口号 (1-65535): " PORT
+        read -rp "Please select a port (1-65535): " PORT
         if [[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ]; then
-            echo -e "${GREEN}已选择端口: $PORT${RESET}"
+            echo -e "${GREEN}Port: $PORT${RESET}"
             break
         else
-            echo -e "${RED}无效端口号，请输入 1 到 65535 之间的数字。${RESET}"
+            echo -e "${RED}Invalid port number, please pick between 1 and 65535。${RESET}"
         fi
     done
 }
@@ -119,13 +119,13 @@ open_port() {
     local PORT=$1
     # 检查 ufw 是否已安装
     if command -v ufw &> /dev/null; then
-        echo -e "${CYAN}在 UFW 中开放端口 $PORT${RESET}"
+        echo -e "${CYAN}Opening port in UFW: $PORT${RESET}"
         ufw allow "$PORT"/tcp
     fi
 
     # 检查 iptables 是否已安装
     if command -v iptables &> /dev/null; then
-        echo -e "${CYAN}在 iptables 中开放端口 $PORT${RESET}"
+        echo -e "${CYAN}Opening port in iptables: $PORT${RESET}"
         iptables -I INPUT -p tcp --dport "$PORT" -j ACCEPT
         iptables-save > /etc/iptables/rules.v4
     fi
@@ -133,7 +133,7 @@ open_port() {
 
 # 安装 Snell
 install_snell() {
-    echo -e "${CYAN}正在安装 Snell${RESET}"
+    echo -e "${CYAN}Installing Snell${RESET}"
 
     wait_for_apt
     apt update && apt install -y wget unzip
@@ -150,13 +150,13 @@ install_snell() {
 
     wget ${SNELL_URL} -O snell-server.zip
     if [ $? -ne 0 ]; then
-        echo -e "${RED}下载 Snell 失败。${RESET}"
+        echo -e "${RED}Snell server download failed${RESET}"
         exit 1
     fi
 
     unzip -o snell-server.zip -d ${INSTALL_DIR}
     if [ $? -ne 0 ]; then
-        echo -e "${RED}解压缩 Snell 失败。${RESET}"
+        echo -e "${RED}Snell server unzip failed${RESET}"
         exit 1
     fi
 
@@ -197,19 +197,19 @@ EOF
 
     systemctl daemon-reload
     if [ $? -ne 0 ]; then
-        echo -e "${RED}重载 Systemd 配置失败。${RESET}"
+        echo -e "${RED}Reloading systemd config failed${RESET}"
         exit 1
     fi
 
     systemctl enable snell
     if [ $? -ne 0 ]; then
-        echo -e "${RED}开机自启动 Snell 失败。${RESET}"
+        echo -e "${RED}Unable to enable Snell services${RESET}"
         exit 1
     fi
 
     systemctl start snell
     if [ $? -ne 0 ]; then
-        echo -e "${RED}启动 Snell 服务失败。${RESET}"
+        echo -e "${RED}Unable to start Snell services${RESET}"
         exit 1
     fi
 
@@ -219,41 +219,41 @@ EOF
     HOST_IP=$(curl -s http://checkip.amazonaws.com)
     IP_COUNTRY=$(curl -s http://ipinfo.io/${HOST_IP}/country)
 
-    echo -e "${GREEN}Snell 安装成功${RESET}"
+    echo -e "${GREEN}Snell installed!${RESET}"
     echo "${IP_COUNTRY} = snell, ${HOST_IP}, ${PORT}, psk = ${RANDOM_PSK}, version = 4, reuse = true, tfo = true"
 }
 
 # 卸载 Snell
 uninstall_snell() {
-    echo -e "${CYAN}正在卸载 Snell${RESET}"
+    echo -e "${CYAN}Uninstalling Snell${RESET}"
 
     systemctl stop snell
     if [ $? -ne 0 ]; then
-        echo -e "${RED}停止 Snell 服务失败。${RESET}"
+        echo -e "${RED}Unable to stop Snell services${RESET}"
         exit 1
     fi
 
     systemctl disable snell
     if [ $? -ne 0 ]; then
-        echo -e "${RED}禁用开机自启动失败。${RESET}"
+        echo -e "${RED}Unable to disable Snell services${RESET}"
         exit 1
     fi
 
     rm /lib/systemd/system/snell.service
     if [ $? -ne 0 ];then
-        echo -e "${RED}删除 Systemd 服务文件失败。${RESET}"
+        echo -e "${RED}Unable to remove systemd config${RESET}"
         exit 1
     fi
 
     rm /usr/local/bin/snell-server
     rm -rf ${SNELL_CONF_DIR}
 
-    echo -e "${GREEN}Snell 卸载成功${RESET}"
+    echo -e "${GREEN}Snell uninstalled!${RESET}"
 }
 
 view_snell_config() {
     if [ -f "${SNELL_CONF_FILE}" ]; then
-        echo -e "${GREEN}当前 Snell 配置:${RESET}"
+        echo -e "${GREEN}Current Snell server config:${RESET}"
         cat "${SNELL_CONF_FILE}"
         
         # 解析配置文件中的信息
@@ -266,27 +266,27 @@ view_snell_config() {
         # 提取 PSK
         PSK=$(grep -E '^psk' "${SNELL_CONF_FILE}" | awk -F'=' '{print $2}' | tr -d ' ')
         
-        echo -e "${GREEN}解析后的配置:${RESET}"
-        echo "外网IP: ${HOST_IP}"
-        echo "所在国家: ${IP_COUNTRY}"
-        echo "端口: ${PORT}"
+        echo -e "${GREEN}Network Stats:${RESET}"
+        echo "Public IP: ${HOST_IP}"
+        echo "Country (Guessed): ${IP_COUNTRY}"
+        echo "Port: ${PORT}"
         echo "PSK: ${PSK}"
         
         # 检查端口号和 PSK 是否正确提取
         if [ -z "${PORT}" ]; then
-            echo -e "${RED}端口解析失败，请检查配置文件。${RESET}"
+            echo -e "${RED}Port config not available${RESET}"
         fi
         
         if [ -z "${PSK}" ]; then
-            echo -e "${RED}PSK 解析失败，请检查配置文件。${RESET}"
+            echo -e "${RED}PSK config not available${RESET}"
         fi
         
         echo -e "${GREEN}${IP_COUNTRY} = snell, ${HOST_IP}, ${PORT}, psk = ${PSK}, version = 4, reuse = true, tfo = true${RESET}"
         
         # 等待用户按任意键返回主菜单
-        read -p "按任意键返回主菜单..."
+        read -p "Press any key to return ..."
     else
-        echo -e "${RED}Snell 配置文件不存在。${RESET}"
+        echo -e "${RED}Snell config missing${RESET}"
     fi
 }
 
@@ -295,7 +295,7 @@ view_snell_config() {
 get_current_snell_version() {
     CURRENT_VERSION=$(snell-server --v 2>&1 | grep -oP 'v[0-9]+\.[0-9]+\.[0-9]+')
     if [ -z "$CURRENT_VERSION" ]; then
-        echo -e "${RED}无法获取当前 Snell 版本。${RESET}"
+        echo -e "${RED}Unable to extract Snell version${RESET}"
         exit 1
     fi
 }
@@ -306,16 +306,16 @@ check_snell_update() {
     get_current_snell_version
 
     if ! version_greater_equal "$CURRENT_VERSION" "$SNELL_VERSION"; then
-        echo -e "${YELLOW}当前 Snell 版本: ${CURRENT_VERSION}，最新版本: ${SNELL_VERSION}${RESET}"
-        echo -e "${CYAN}是否更新 Snell? [y/N]${RESET}"
+        echo -e "${YELLOW}Current Snell version: ${CURRENT_VERSION}，Latest Snell release: ${SNELL_VERSION}${RESET}"
+        echo -e "${CYAN}Upgrade Snell? [y/N]${RESET}"
         read -r choice
         if [[ "$choice" == "y" || "$choice" == "Y" ]]; then
             install_snell
         else
-            echo -e "${CYAN}已取消更新。${RESET}"
+            echo -e "${CYAN}Upgrade cancelled${RESET}"
         fi
     else
-        echo -e "${GREEN}当前已是最新版本 (${CURRENT_VERSION})。${RESET}"
+        echo -e "${GREEN}Using latest Snell release already (${CURRENT_VERSION})${RESET}"
     fi
 }
 
@@ -323,13 +323,13 @@ check_snell_update() {
 get_latest_github_version() {
     GITHUB_VERSION_INFO=$(curl -s https://api.github.com/repos/bitinn/snell.sh/releases/latest)
     if [ $? -ne 0 ]; then
-        echo -e "${RED}无法获取 GitHub 上的最新版本信息。${RESET}"
+        echo -e "${RED}Unable to retrieve GitHub api response${RESET}"
         exit 1
     fi
 
     GITHUB_VERSION=$(echo "$GITHUB_VERSION_INFO" | jq -r '.name' | awk '{print $NF}')
     if [ -z "$GITHUB_VERSION" ]; then
-        echo -e "${RED}获取 GitHub 版本失败。${RESET}"
+        echo -e "${RED}Unable to extract latest script from GitHub response${RESET}"
         exit 1
     fi
 }
@@ -339,16 +339,16 @@ update_script() {
     get_latest_github_version
 
     if version_greater_equal "$CURRENT_VERSION" "$GITHUB_VERSION"; then
-        echo -e "${GREEN}当前版本 (${CURRENT_VERSION}) 已是最新，无需更新。${RESET}"
+        echo -e "${GREEN}Already using latest install script (${CURRENT_VERSION})${RESET}"
     else
         # 使用 curl 下载脚本并覆盖当前脚本
         curl -s -o "$0" "https://raw.githubusercontent.com/bitinn/snell.sh/main/snell.sh"
         if [ $? -eq 0 ]; then
-            echo -e "${GREEN}脚本更新成功！已更新至 GitHub 上的版本: ${GITHUB_VERSION}${RESET}"
-            echo -e "${YELLOW}请重新执行脚本以应用更新。${RESET}"
+            echo -e "${GREEN}Script updated to latest version: ${GITHUB_VERSION}${RESET}"
+            echo -e "${YELLOW}Please rerun this command${RESET}"
             exec "$0"  # 重新执行当前脚本
         else
-            echo -e "${RED}脚本更新失败！${RESET}"
+            echo -e "${RED}Script update failed${RESET}"
         fi
     fi
 }
@@ -356,20 +356,20 @@ update_script() {
 # 主菜单
 while true; do
     echo -e "${RED} ========================================= ${RESET}"
-    echo -e "${RED} 作者: jinqian ${RESET}"
-    echo -e "${RED} 网站：https://jinqians.com ${RESET}"
-    echo -e "${RED} 描述: 这个脚本用于安装、卸载、查看和更新 Snell 代理 ${RESET}"
+    echo -e "${RED} Author - jinqian ${RESET}"
+    echo -e "${RED} Source - https://github.com/jinqians/snell.sh ${RESET}"
+    echo -e "${RED} Forked - https://github.com/bitinn/snell.sh ${RESET}"
     echo -e "${RED} ========================================= ${RESET}"
 
 
-    echo -e "${CYAN} ============== Snell 管理工具 ============== ${RESET}"
-    echo "1) 安装 Snell"
-    echo "2) 卸载 Snell"
-    echo "3) 查看 Snell 配置"
-    echo "4) 检查 Snell 更新"
-    echo "5) 更新脚本"
-    echo "0) 退出"
-    read -rp "请选择操作: " choice
+    echo -e "${CYAN} ============== Snell Script ============== ${RESET}"
+    echo "1) Install Snell"
+    echo "2) Uninstall Snell"
+    echo "3) View Snell config"
+    echo "4) Upgrade Snell server"
+    echo "5) Update this script"
+    echo "0) Exit"
+    read -rp "Please select an option: " choice
 
     case "$choice" in
         1)
@@ -391,7 +391,7 @@ while true; do
             exit 0
             ;;
         *)
-            echo -e "${RED}无效选项，请重试。${RESET}"
+            echo -e "${RED}Invalid option${RESET}"
             ;;
     esac
 done
