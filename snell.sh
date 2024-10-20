@@ -92,13 +92,11 @@ version_greater_equal() {
 
     # 比较主版本、次版本和修订版本
     for i in {0..2}; do
-        if (( ver1_arr[i] > ver2_arr[i] )); then
+        if (( ver1_arr[i] < ver2_arr[i] )); then
             return 0
-        elif (( ver1_arr[i] < ver2_arr[i] )); then
-            return 1
         fi
     done
-    return 0
+    return 1
 }
 
 # 用户输入端口号，范围 1-65535
